@@ -30,7 +30,7 @@ public class GameActivity extends AppCompatActivity {
     EditText getSize;
     Button goButton;
     RelativeLayout gs;
-    static Boolean gameQuit = false;
+    static int gameQuit = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +45,10 @@ public class GameActivity extends AppCompatActivity {
         tileGrid.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(gameQuit)
+                if(gameQuit == 1)
                     finish();
+                else if(gameQuit == 0)
+                    startActivity(new Intent(getApplicationContext(), PatternActivity.class));
             }
         });
 
@@ -81,7 +83,6 @@ public class GameActivity extends AppCompatActivity {
                 }
                 tileGrid.setVisibility(View.VISIBLE);
                 gs.setVisibility(View.GONE);
-
             }
         });
     }
@@ -100,6 +101,7 @@ public class GameActivity extends AppCompatActivity {
                     for (int i = 0; i < GameUtils.size; i++)
                         for (int j = 0; j < GameUtils.size; j++)
                             GameUtils.gameGrid[i][j].resetTile();
+                    GameUtils.undoList.clear();
                     break;
 
                 case R.id.undo:
@@ -129,12 +131,14 @@ public class GameActivity extends AppCompatActivity {
                     for (int j = 0; j < GameUtils.size; j++)
                         GameUtils.gameGrid[k][j].resetTile();
                 GameUtils.newPattern = true;
+                gameQuit = 0;
+                GameUtils.lv.callOnClick();
             }
         });
         alertBuilder.setNegativeButton("QUIT", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                gameQuit = true;
+                gameQuit = 1;
                 GameUtils.lv.callOnClick();
             }
         });
@@ -143,5 +147,11 @@ public class GameActivity extends AppCompatActivity {
         if (GameUtils.gameOverCheck()) {
             alertDialog.show();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        gameQuit = 2;
+        super.onResume();
     }
 }

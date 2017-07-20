@@ -1,5 +1,6 @@
 package com.curve.nandhakishore.tiletaskdelta;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -61,11 +62,18 @@ public class PatternActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.pattern_menu, menu);
         return super.onCreateOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.new_pattern:
+                GameUtils.newPattern = true;
+                reload();
+                break;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -73,7 +81,7 @@ public class PatternActivity extends AppCompatActivity {
         Random generator = new Random();
         int k=0, l=0;
         int k1, l1;
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 3; i++){
             k1 = generator.nextInt(GameUtils.size);
             l1 = generator.nextInt(GameUtils.size);
             while (k != k1) {
@@ -93,6 +101,15 @@ public class PatternActivity extends AppCompatActivity {
         for(int i = 0; i < GameUtils.size; i++)
             for(int j = 0; j < GameUtils.size; j++)
                 GameUtils.patternGrid[i][j].getTile().setEnabled(enable);
+    }
+
+    public void reload() {
+        Intent intent = getIntent();
+        overridePendingTransition(0, 0);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        finish();
+        overridePendingTransition(0, 0);
+        startActivity(intent);
     }
 
     @Override
