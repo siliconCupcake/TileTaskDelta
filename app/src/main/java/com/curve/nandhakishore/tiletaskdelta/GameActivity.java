@@ -30,54 +30,78 @@ public class GameActivity extends AppCompatActivity {
     EditText getSize;
     Button goButton;
     RelativeLayout gs;
-    static int gameQuit = 2;
+    int size;
+    Boolean newPattern = true;
+    ArrayList<GameTile> undoList;
+    View.OnClickListener clickGameTile;
+    public GameTile[][] gameGrid, patternGrid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.game_activity);
 
-        GameUtils.undoList = new ArrayList<>();
+        clickGameTile = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                GameTile tile = (GameTile) view;
+                int i = tile.getI();
+                int j = tile.getJ();
+                if (!tile.isPattern()) {
+                    undoList.add(gameGrid[i][j]);
+                    Log.e("GameGrid", "Clicked (" + String.valueOf(i) + ", " + String.valueOf(j) + ")");
+                    try {
+                        tile.invertState(gameGrid[i - 1][j]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    try {
+                        tile.invertState(gameGrid[i + 1][j]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    try {
+                        tile.invertState(gameGrid[i][j - 1]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    try {
+                        tile.invertState(gameGrid[i][j + 1]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    if (patternGrid != null) {
+                        gameOver();
+                    }
+                }
+            }
+        };
+
+        undoList = new ArrayList<>();
         getSize = (EditText) findViewById(R.id.input);
         gs = (RelativeLayout) findViewById(R.id.grid_size);
         goButton = (Button) findViewById(R.id.ok_button);
         tileGrid = (LinearLayout) findViewById(R.id.tile_grid);
-        tileGrid.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(gameQuit == 1)
-                    finish();
-                else if(gameQuit == 0)
-                    startActivity(new Intent(getApplicationContext(), PatternActivity.class));
-            }
-        });
 
-        GameUtils.lv = tileGrid;
-        GameUtils.gameContext = this;
 
         goButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                GameUtils.size = Integer.parseInt(getSize.getText().toString());
-                tileGrid.setWeightSum((float) GameUtils.size);
-                GameUtils.gameGrid = new GameTile[GameUtils.size][GameUtils.size];
-                for (int i = 0; i < GameUtils.size; i++) {
+                size = Integer.parseInt(getSize.getText().toString());
+                tileGrid.setWeightSum((float) size);
+                gameGrid = new GameTile[size][size];
+                patternGrid = new GameTile[size][size];
+                for (int i = 0; i < size; i++) {
                     LinearLayout tmp = new LinearLayout(getApplicationContext());
-                    tmp.setWeightSum((float) GameUtils.size);
+                    tmp.setWeightSum((float) size);
                     LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
                     tmp.setLayoutParams(layoutParams);
 
-                    for (int j = 0; j < GameUtils.size; j++) {
-                        Button tile = new Button(getApplicationContext());
+                    for (int j = 0; j < size; j++) {
+                        GameTile gt = new GameTile(getApplicationContext(), true, false, i, j);
                         LinearLayout.LayoutParams bParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
                         bParams.setMargins(10, 10, 10, 10);
-                        tile.setLayoutParams(bParams);
-                        tile.setBackgroundColor(Color.BLACK);
-                        GameTile gt = new GameTile(tile, true, false);
-                        GameUtils.gameGrid[i][j] = gt;
-                        gt.setI(i);
-                        gt.setJ(j);
-                        tmp.addView(tile);
+                        gt.setLayoutParams(bParams);
+                        gt.setBackgroundColor(Color.BLACK);
+                        gt.setOnClickListener(clickGameTile);
+                        gameGrid[i][j] = gt;
+                        tmp.addView(gt);
                     }
                     tileGrid.addView(tmp);
                 }
@@ -98,60 +122,83 @@ public class GameActivity extends AppCompatActivity {
         if (gs.getVisibility() == View.GONE)
             switch (item.getItemId()) {
                 case R.id.reset:
-                    for (int i = 0; i < GameUtils.size; i++)
-                        for (int j = 0; j < GameUtils.size; j++)
-                            GameUtils.gameGrid[i][j].resetTile();
-                    GameUtils.undoList.clear();
+                    for (int i = 0; i < size; i++)
+                        for (int j = 0; j < size; j++)
+                            gameGrid[i][j].resetTile();
+                    undoList.clear();
                     break;
 
                 case R.id.undo:
                     try {
-                        GameUtils.undoList.get(GameUtils.undoList.size() - 1).getTile().callOnClick();
-                        GameUtils.undoList.remove(GameUtils.undoList.size() - 1);
-                        GameUtils.undoList.remove(GameUtils.undoList.size() - 1);
+                        undoList.get(undoList.size() - 1).callOnClick();
+                        undoList.remove(undoList.size() - 1);
+                        undoList.remove(undoList.size() - 1);
                     }catch (Exception e) {
                     }
                     break;
 
                 case R.id.view_pattern:
-                    startActivity(new Intent(getApplicationContext(), PatternActivity.class));
+                    Intent viewPattern = new Intent(getApplicationContext(), PatternActivity.class);
+                    viewPattern.putExtra("size", size);
+                    PatternActivity.newPattern = newPattern;
+                    PatternActivity.patternGrid = patternGrid;
+                    startActivityForResult(viewPattern, 1);
                     break;
             }
         return super.onOptionsItemSelected(item);
     }
 
-    public static void gameOver() {
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(GameUtils.gameContext);
+    public void gameOver() {
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
         alertBuilder.setTitle("YOU WIN");
         alertBuilder.setMessage("What next?");
         alertBuilder.setPositiveButton("AGAIN", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                for (int k = 0; k < GameUtils.size; k++)
-                    for (int j = 0; j < GameUtils.size; j++)
-                        GameUtils.gameGrid[k][j].resetTile();
-                GameUtils.newPattern = true;
-                gameQuit = 0;
-                GameUtils.lv.callOnClick();
+                for (int k = 0; k < size; k++)
+                    for (int j = 0; j < size; j++)
+                        gameGrid[k][j].resetTile();
+                newPattern = true;
+                Intent viewPattern = new Intent(getApplicationContext(), PatternActivity.class);
+                viewPattern.putExtra("size", size);
+                PatternActivity.newPattern = newPattern;
+                PatternActivity.patternGrid = patternGrid;
+                startActivityForResult(viewPattern, 1);
             }
         });
         alertBuilder.setNegativeButton("QUIT", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                gameQuit = 1;
-                GameUtils.lv.callOnClick();
+                finish();
             }
         });
         AlertDialog alertDialog = alertBuilder.create();
 
-        if (GameUtils.gameOverCheck()) {
+        if (gameOverCheck()) {
             alertDialog.show();
         }
     }
 
     @Override
-    protected void onResume() {
-        gameQuit = 2;
-        super.onResume();
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == 1){
+            newPattern = PatternActivity.newPattern;
+            patternGrid = PatternActivity.patternGrid;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
+
+    public boolean gameOverCheck(){
+        for(int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                try {
+                    if (gameGrid[i][j].isDark() != patternGrid[i][j].isDark())
+                        return false;
+                }catch (Exception e){
+                }
+            }
+        }
+        return true;
+    }
+
 }

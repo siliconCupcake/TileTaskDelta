@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -15,7 +16,11 @@ import java.util.Random;
 
 public class PatternActivity extends AppCompatActivity {
 
-    LinearLayout patternGrid;
+    LinearLayout patternLV;
+    public static GameTile[][] patternGrid;
+    int size;
+    public static Boolean newPattern;
+    View.OnClickListener clickPatternTile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,39 +28,65 @@ public class PatternActivity extends AppCompatActivity {
         setContentView(R.layout.pattern_activity);
         setTitle("Pattern");
 
-        patternGrid = (LinearLayout) findViewById(R.id.pattern_grid);
-        patternGrid.setWeightSum((float) GameUtils.size);
-        if(GameUtils.newPattern)
-            GameUtils.patternGrid = new GameTile[GameUtils.size][GameUtils.size];
+        size = getIntent().getIntExtra("size", 0);
+        clickPatternTile = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                GameTile tile = (GameTile) view;
+                int i = tile.getI();
+                int j = tile.getJ();
+                if (tile.isPattern()) {
+                    try {
+                        tile.invertState(patternGrid[i - 1][j]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    try {
+                        tile.invertState(patternGrid[i + 1][j]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    try {
+                        tile.invertState(patternGrid[i][j - 1]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    try {
+                        tile.invertState(patternGrid[i][j + 1]);
+                    } catch (IndexOutOfBoundsException e) {
+                    }
+                    }
+                }
+            };
 
-        for(int i = 0; i < GameUtils.size; i++) {
+        patternLV = (LinearLayout) findViewById(R.id.pattern_grid);
+        patternLV.setWeightSum((float) size);
+        if(newPattern)
+            patternGrid = new GameTile[size][size];
+
+        for(int i = 0; i < size; i++) {
             LinearLayout tLayout = new LinearLayout(getApplicationContext());
-            tLayout.setWeightSum((float) GameUtils.size);
+            tLayout.setWeightSum((float) size);
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
             tLayout.setLayoutParams(layoutParams);
-            for (int j = 0; j < GameUtils.size; j++) {
-                Button b = new Button(this);
+            for (int j = 0; j < size; j++) {
+                GameTile gt = new GameTile(getApplicationContext(), true, true, i, j);
                 LinearLayout.LayoutParams bParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
                 bParams.setMargins(10, 10, 10, 10);
-                b.setLayoutParams(bParams);
-                b.setBackgroundColor(Color.BLACK);
-                if(GameUtils.newPattern) {
-                    GameTile gt = new GameTile(b, true, true);
-                    GameUtils.patternGrid[i][j] = gt;
-                    gt.setI(i);
-                    gt.setJ(j);
+                if(newPattern) {
+                    gt.setLayoutParams(bParams);
+                    gt.setBackgroundColor(Color.BLACK);
+                    gt.setOnClickListener(clickPatternTile);
+                    patternGrid[i][j] = gt;
                 }
                 else
-                    b = GameUtils.patternGrid[i][j].getTile();
-                if(b.getParent() != null)
-                    ((ViewGroup) b.getParent()).removeView(b);
-                tLayout.addView(b);
+                    gt = patternGrid[i][j];
+                if(gt.getParent() != null)
+                    ((ViewGroup) gt.getParent()).removeView(gt);
+                tLayout.addView(gt);
             }
-            patternGrid.addView(tLayout);
+            patternLV.addView(tLayout);
         }
-        if(GameUtils.newPattern) {
+        if(newPattern) {
             createPattern();
-            GameUtils.newPattern = false;
+            newPattern = false;
         }
         enableTiles(false);
     }
@@ -70,7 +101,7 @@ public class PatternActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
             case R.id.new_pattern:
-                GameUtils.newPattern = true;
+                newPattern = true;
                 reload();
                 break;
         }
@@ -82,25 +113,25 @@ public class PatternActivity extends AppCompatActivity {
         int k=0, l=0;
         int k1, l1;
         for(int i = 0; i < 3; i++){
-            k1 = generator.nextInt(GameUtils.size);
-            l1 = generator.nextInt(GameUtils.size);
-            while (k != k1) {
-                k = k1;
-                k1 = generator.nextInt(GameUtils.size);
+            k1 = generator.nextInt(size);
+            l1 = generator.nextInt(size);
+            while (k == k1) {
+                k1 = generator.nextInt(size);
             }
-            while (l != l1) {
-                l = l1;
-                l1 = generator.nextInt(GameUtils.size);
+            k = k1;
+            while (l == l1) {
+                l1 = generator.nextInt(size);
             }
+            l = l1;
             Log.e("CreatePattern", "Click (" + String.valueOf(k) + ", " + String.valueOf(l) + ")");
-            GameUtils.patternGrid[k][l].getTile().callOnClick();
+            patternGrid[k][l].callOnClick();
         }
     }
 
     public void enableTiles(boolean enable){
-        for(int i = 0; i < GameUtils.size; i++)
-            for(int j = 0; j < GameUtils.size; j++)
-                GameUtils.patternGrid[i][j].getTile().setEnabled(enable);
+        for(int i = 0; i < size; i++)
+            for(int j = 0; j < size; j++)
+                patternGrid[i][j].setEnabled(enable);
     }
 
     public void reload() {
@@ -114,7 +145,7 @@ public class PatternActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        patternGrid.removeAllViews();
+        patternLV.removeAllViews();
         super.onStop();
     }
 }
