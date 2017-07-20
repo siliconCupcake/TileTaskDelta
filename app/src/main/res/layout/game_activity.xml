@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.curve.nandhakishore.tiletaskdelta.GameActivity">
+
+    <RelativeLayout
+        android:orientation="vertical"
+        android:id="@+id/grid_size"
+        android:layout_gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="Grid size     "
+            android:layout_marginEnd="8dp"
+            android:id="@+id/input"
+            android:imeOptions="actionDone"
+            android:inputType="numberDecimal"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="GO"
+            android:layout_toEndOf="@id/input"
+            android:id="@+id/ok_button"/>
+
+    </RelativeLayout>
+
+<LinearLayout
+    android:orientation="vertical"
+    android:id="@+id/tile_grid"
+    android:layout_width="match_parent"
+    android:visibility="gone"
+    android:layout_height="match_parent">
+
+</LinearLayout>
+
+</FrameLayout>
